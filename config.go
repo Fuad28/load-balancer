@@ -5,7 +5,8 @@ type ConfigLoader interface {
 }
 
 type CommonConfig struct {
-	port int
+	Port            int
+	healthCheckPath string
 }
 
 type DevConfig struct {
@@ -14,17 +15,19 @@ type DevConfig struct {
 	randomServerOff bool
 }
 
-type ProdConfig struct {
-	CommonConfig
-	serversAddress  []string
-	host            string
-	port            string
-	healthCheckPath string
-}
-
 func (c *DevConfig) LoadConfig() error {
 	// load config
 	return nil
+}
+
+type ProdServer struct {
+	Address         string // host:port or domain
+	healthCheckPath string
+}
+type ProdConfig struct {
+	CommonConfig
+	Servers         []ProdServer
+	healthCheckPath string
 }
 
 func (c *ProdConfig) LoadConfig() error {
