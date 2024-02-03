@@ -4,32 +4,24 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"strconv"
+	"sync"
 )
 
-/*
-create server based on a given port
-request server's ping url to check if alive
-default handler for each server
-
-*/
+type ServerMuxFunc func(string, string, int) http.Handler
 
 type Server struct {
 	healthCheckPath string
-	// Port            int
-	Address   string
-	ServerMux http.Handler
+	Address         string
+	ServerMux       ServerMuxFunc
 }
-
-// type LoadBalancerDevConfig struct {
-
-// }
 
 type LoadBalancer struct {
 	Port     int
-	lastPort int
+	LastPort int
 	Count    int
 	Servers  []*Server
-	// Config T
+	Config   LoadBalancerConfig
 }
 
 func (lb *LoadBalancer) getNextServer() *Server {
@@ -46,41 +38,80 @@ func (lb *LoadBalancer) getNextServer() *Server {
 }
 
 func portInuse(port int) bool {
-	_, err := http.Get("http://localhost:" + string(port))
+	_, err := http.Get("http://localhost:" + strconv.Itoa(port))
 
-	if err != nil {
-		return true
-	}
-
-	return false
+	return err != nil
 }
 
 func (lb *LoadBalancer) getNextPort() int {
 
-	lb.lastPort++
+	lb.LastPort++
 
 	for {
-		if portInuse(lb.lastPort) {
-			lb.lastPort++
+		if portInuse(lb.LastPort) {
+			lb.LastPort++
 		} else {
-			return lb.lastPort
+			return lb.LastPort
 		}
 	}
 }
 
+func (lb *LoadBalancer) Start() {
+	waitGroup := sync.WaitGroup{}
+
+	if lb.Config.Env == "dev" {
+		lb.StartDemoServers(&waitGroup)
+		lb.StartLB(&waitGroup)
+
+		waitGroup.Wait()
+	} else {
+		lb.StartLB(&waitGroup)
+	}
+
+}
+
+func (lb *LoadBalancer) StartDemoServers(waitGroup *sync.WaitGroup) {
+	for _, server := range lb.Servers {
+		waitGroup.Add(1)
+
+		go func(server *Server) {
+			defer waitGroup.Done()
+			http.ListenAndServe(
+				server.Address,
+				NewServerMux(server.healthCheckPath, server.Address, len(lb.Servers)))
+		}(server)
+	}
+
+}
+
+func (lb *LoadBalancer) StartLB(waitGroup *sync.WaitGroup) {
+	waitGroup.Add(1)
+
+	go func() {
+		defer waitGroup.Done()
+		http.ListenAndServe(":"+strconv.Itoa(lb.Port), nil)
+	}()
+
+}
+
 func NewServer(healthCheckPath string, address string) *Server {
+
+	return &Server{
+		healthCheckPath: healthCheckPath,
+		Address:         address,
+	}
+}
+
+func NewServerMux(healthCheckPath string, address string, serverIdx int) http.Handler {
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(healthCheckPath, handleServer1)
-	mux.HandleFunc("/", handleServer1)
+	mux.HandleFunc(healthCheckPath, func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(w, "Response from server: "+strconv.Itoa(serverIdx))
 
-	return &Server{
-		// Port:            port,
-		healthCheckPath: healthCheckPath,
-		Address:         address,
-		ServerMux:       mux,
-	}
+	})
+
+	return mux
 }
 
 func (s *Server) IsAlive() bool {
@@ -97,19 +128,4 @@ func (s *Server) IsAlive() bool {
 
 	return false
 
-}
-
-const lbPort1 = ":81"
-
-func handleServer1(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprintf(w, "Response from server 1")
-
-}
-
-func ServerMuxOne() http.Handler {
-	mux := http.NewServeMux()
-
-	mux.HandleFunc("/", handleServer1)
-
-	return mux
 }
