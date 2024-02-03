@@ -5,14 +5,14 @@ type ConfigLoader interface {
 }
 
 type CommonConfig struct {
-	Port            int
-	healthCheckPath string
+	Port              int    `json:"port"`
+	LBHealthCheckPath string `json:"lbHealthCheckPath"`
+	Env               string `json:"env"` // DEV or PROD
 }
 
 type DevConfig struct {
-	CommonConfig
-	noOfServers     int
-	randomServerOff bool
+	NoOfServers     int  `json:"noOfServers"`
+	RandomServerOff bool `json:"randomServerOff"`
 }
 
 func (c *DevConfig) LoadConfig() error {
@@ -21,13 +21,12 @@ func (c *DevConfig) LoadConfig() error {
 }
 
 type ProdServer struct {
-	Address         string // host:port or domain
-	healthCheckPath string
+	Address         string `json:"address"` // host:port or domain
+	HealthCheckPath string `json:"healthCheckPath"`
 }
 type ProdConfig struct {
-	CommonConfig
-	Servers         []ProdServer
-	healthCheckPath string
+	Servers         []ProdServer `json:"servers"`
+	HealthCheckPath string       `json:"healthCheckPath"`
 }
 
 func (c *ProdConfig) LoadConfig() error {
@@ -36,5 +35,7 @@ func (c *ProdConfig) LoadConfig() error {
 }
 
 type LoadBalancerConfig struct {
-	ConfigLoader ConfigLoader
+	CommonConfig
+	DevConfig
+	ProdConfig
 }

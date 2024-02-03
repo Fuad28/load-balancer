@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strings"
 )
 
 /*
@@ -16,9 +15,9 @@ default handler for each server
 
 type Server struct {
 	healthCheckPath string
-	Port            int
-	Address         string
-	ServerMux       http.Handler
+	// Port            int
+	Address   string
+	ServerMux http.Handler
 }
 
 // type LoadBalancerDevConfig struct {
@@ -46,26 +45,30 @@ func (lb *LoadBalancer) getNextServer() *Server {
 	return server
 }
 
-func (lb *LoadBalancer) getNextPort() int {
+func portInuse(port int) bool {
+	_, err := http.Get("http://localhost:" + string(port))
 
-	lastPort := lb.lastPort + 1
-
-	for _, server := range lb.Servers {
-		if server.Port == lastPort {
-			lastPort++
-			lb.getNextPort()
-		}
+	if err != nil {
+		return true
 	}
 
-	return lastPort
+	return false
 }
 
-func NewServer(healthCheckPath string, address string, port int) *Server {
-	if !strings.HasPrefix(healthCheckPath, "/") {
-		healthCheckPath = "/" + healthCheckPath
-	}
+func (lb *LoadBalancer) getNextPort() int {
 
-	// get port
+	lb.lastPort++
+
+	for {
+		if portInuse(lb.lastPort) {
+			lb.lastPort++
+		} else {
+			return lb.lastPort
+		}
+	}
+}
+
+func NewServer(healthCheckPath string, address string) *Server {
 
 	mux := http.NewServeMux()
 
@@ -73,7 +76,7 @@ func NewServer(healthCheckPath string, address string, port int) *Server {
 	mux.HandleFunc("/", handleServer1)
 
 	return &Server{
-		Port:            100,
+		// Port:            port,
 		healthCheckPath: healthCheckPath,
 		Address:         address,
 		ServerMux:       mux,

@@ -1,0 +1,5 @@
+{
+	"env": "dev",
+	"numberOfServers": 5,
+	"randomServerOff": true
+}
