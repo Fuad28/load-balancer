@@ -5,19 +5,6 @@ import (
 	"strconv"
 )
 
-// const lbPort = ":80"
-
-// func handleRoot(w http.ResponseWriter, req *http.Request) {
-// 	fmt.Fprintf(w, `
-// 	Received request from: %v
-// 	%v %v %v
-// 	Host: %v
-// 	User-Agent: %v
-// 	Accept: %v
-// 	`, req.RemoteAddr, req.Method, req.URL.Path, req.Proto, req.Host, req.UserAgent(), req.Header.Get("Accept"))
-
-// }
-
 func main() {
 	lb := setupLoadBalancer()
 	lb.Start()

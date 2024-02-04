@@ -14,10 +14,9 @@ type ServerConf struct {
 }
 
 type LoadBalancerConfig struct {
-	Port              int          `json:"port" valid:"required"`
-	LBHealthCheckPath string       `json:"lbHealthCheckPath" valid:"required"`
-	Env               string       `json:"env" valid:"required"` // DEV or PROD
-	Servers           []ServerConf `json:"servers" valid:"required"`
+	Port    int          `json:"port" valid:"required"`
+	Env     string       `json:"env" valid:"required"` // DEV or PROD
+	Servers []ServerConf `json:"servers" valid:"required"`
 
 	// dev configs
 	NoOfServers     int  `json:"noOfServers"`

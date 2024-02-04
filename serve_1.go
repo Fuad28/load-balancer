@@ -4,16 +4,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"strconv"
 	"sync"
 )
 
-type ServerMuxFunc func(string, string, int) http.Handler
-
 type Server struct {
 	healthCheckPath string
 	Address         string
-	ServerMux       ServerMuxFunc
+	ServerMux       http.Handler
+	Proxy           *httputil.ReverseProxy
 }
 
 func (s *Server) IsAlive() bool {
@@ -32,24 +33,29 @@ func (s *Server) IsAlive() bool {
 
 }
 
-func NewServer(healthCheckPath string, address string) *Server {
+func (s *Server) Serve(w http.ResponseWriter, req *http.Request) {
+	s.Proxy.ServeHTTP(w, req)
 
-	return &Server{
-		healthCheckPath: healthCheckPath,
-		Address:         address,
-	}
 }
 
-func NewServerMux(healthCheckPath string, address string, serverIdx int) http.Handler {
+func NewServer(healthCheckPath string, address string) *Server {
+	serverUrl, err := url.Parse(address)
+
+	OnErrorPanic(err, "Invalid server address")
 
 	mux := http.NewServeMux()
 
 	mux.HandleFunc(healthCheckPath, func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, "Response from server: "+strconv.Itoa(serverIdx))
+		fmt.Fprintf(w, "Response from server: %v", address)
 
 	})
 
-	return mux
+	return &Server{
+		healthCheckPath: healthCheckPath,
+		Address:         address,
+		ServerMux:       mux,
+		Proxy:           httputil.NewSingleHostReverseProxy(serverUrl),
+	}
 }
 
 type LoadBalancer struct {
@@ -65,11 +71,10 @@ func (lb *LoadBalancer) getNextServer() *Server {
 	lb.Count++
 	server := lb.Servers[lb.Count%len(lb.Servers)]
 
-	if !server.IsAlive() {
+	if !server.IsAlive() || SimulateDownServer(lb) {
 		lb.Count++
 		lb.getNextServer()
 	}
-
 	return server
 }
 
@@ -111,11 +116,9 @@ func (lb *LoadBalancer) StartDemoServers(waitGroup *sync.WaitGroup) {
 		waitGroup.Add(1)
 
 		go func(server *Server) {
-			defer waitGroup.Done()
 
-			http.ListenAndServe(
-				server.Address,
-				NewServerMux(server.healthCheckPath, server.Address, len(lb.Servers)))
+			defer waitGroup.Done()
+			http.ListenAndServe(server.Address, server.ServerMux)
 		}(server)
 	}
 
@@ -126,7 +129,18 @@ func (lb *LoadBalancer) StartLB(waitGroup *sync.WaitGroup) {
 
 	go func() {
 		defer waitGroup.Done()
+
+		http.HandleFunc("/", lb.Serve)
 		http.ListenAndServe(":"+strconv.Itoa(lb.Port), nil)
 	}()
+
+}
+
+func (lb *LoadBalancer) Serve(w http.ResponseWriter, req *http.Request) {
+	server := lb.getNextServer()
+
+	fmt.Printf("Sending request to server %v", server.Address)
+
+	server.Serve(w, req)
 
 }
