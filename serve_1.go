@@ -16,6 +16,42 @@ type Server struct {
 	ServerMux       ServerMuxFunc
 }
 
+func (s *Server) IsAlive() bool {
+	res, err := http.Get(s.healthCheckPath)
+
+	if res.StatusCode == 200 {
+		return true
+	}
+
+	if err != nil {
+		log.Fatal(err)
+		return false
+	}
+
+	return false
+
+}
+
+func NewServer(healthCheckPath string, address string) *Server {
+
+	return &Server{
+		healthCheckPath: healthCheckPath,
+		Address:         address,
+	}
+}
+
+func NewServerMux(healthCheckPath string, address string, serverIdx int) http.Handler {
+
+	mux := http.NewServeMux()
+
+	mux.HandleFunc(healthCheckPath, func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(w, "Response from server: "+strconv.Itoa(serverIdx))
+
+	})
+
+	return mux
+}
+
 type LoadBalancer struct {
 	Port     int
 	LastPort int
@@ -76,6 +112,7 @@ func (lb *LoadBalancer) StartDemoServers(waitGroup *sync.WaitGroup) {
 
 		go func(server *Server) {
 			defer waitGroup.Done()
+
 			http.ListenAndServe(
 				server.Address,
 				NewServerMux(server.healthCheckPath, server.Address, len(lb.Servers)))
@@ -91,41 +128,5 @@ func (lb *LoadBalancer) StartLB(waitGroup *sync.WaitGroup) {
 		defer waitGroup.Done()
 		http.ListenAndServe(":"+strconv.Itoa(lb.Port), nil)
 	}()
-
-}
-
-func NewServer(healthCheckPath string, address string) *Server {
-
-	return &Server{
-		healthCheckPath: healthCheckPath,
-		Address:         address,
-	}
-}
-
-func NewServerMux(healthCheckPath string, address string, serverIdx int) http.Handler {
-
-	mux := http.NewServeMux()
-
-	mux.HandleFunc(healthCheckPath, func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, "Response from server: "+strconv.Itoa(serverIdx))
-
-	})
-
-	return mux
-}
-
-func (s *Server) IsAlive() bool {
-	res, err := http.Get(s.healthCheckPath)
-
-	if res.StatusCode == 200 {
-		return true
-	}
-
-	if err != nil {
-		log.Fatal(err)
-		return false
-	}
-
-	return false
 
 }

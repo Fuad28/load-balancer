@@ -27,18 +27,14 @@ type LoadBalancerConfig struct {
 func (lbConfig *LoadBalancerConfig) LoadConfig() error {
 	err := LoadFile[LoadBalancerConfig](CONFIGPATH, lbConfig)
 
-	if err != nil {
-		panic(err)
-	}
+	OnErrorPanic(err, "Error loading config")
 
 	_, err = validator.ValidateStruct(lbConfig)
 
-	if err != nil {
-		panic(err)
-	}
+	OnErrorPanic(err, "config validation error")
 
 	if (strings.ToLower(config.Env) == "dev") && (lbConfig.NoOfServers <= 0) {
-		panic("NoOfServers has to be greater than 1")
+		OnErrorPanic(err, "NoOfServers has to be greater than 1")
 	}
 
 	return nil
