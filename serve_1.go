@@ -12,24 +12,20 @@ import (
 
 type Server struct {
 	healthCheckPath string
-	Address         string
+	Address         *url.URL
 	ServerMux       http.Handler
 	Proxy           *httputil.ReverseProxy
 }
 
 func (s *Server) IsAlive() bool {
-	res, err := http.Get(s.healthCheckPath)
-
-	if res.StatusCode == 200 {
-		return true
-	}
+	_, err := http.Get(s.healthCheckPath)
 
 	if err != nil {
 		log.Fatal(err)
 		return false
 	}
 
-	return false
+	return true
 
 }
 
@@ -39,20 +35,20 @@ func (s *Server) Serve(w http.ResponseWriter, req *http.Request) {
 }
 
 func NewServer(healthCheckPath string, address string) *Server {
-	serverUrl, err := url.Parse(address)
+	serverUrl, err := url.Parse("http://" + address)
 
 	OnErrorPanic(err, "Invalid server address")
 
 	mux := http.NewServeMux()
 
-	mux.HandleFunc(healthCheckPath, func(w http.ResponseWriter, req *http.Request) {
-		fmt.Fprintf(w, "Response from server: %v", address)
+	mux.HandleFunc("/", func(w http.ResponseWriter, req *http.Request) {
+		fmt.Fprintf(w, "Response from server: %v\n", address)
 
 	})
 
 	return &Server{
-		healthCheckPath: healthCheckPath,
-		Address:         address,
+		healthCheckPath: serverUrl.String(),
+		Address:         serverUrl,
 		ServerMux:       mux,
 		Proxy:           httputil.NewSingleHostReverseProxy(serverUrl),
 	}
@@ -75,13 +71,13 @@ func (lb *LoadBalancer) getNextServer() *Server {
 		lb.Count++
 		lb.getNextServer()
 	}
+
 	return server
 }
 
 func portInuse(port int) bool {
 	_, err := http.Get("http://localhost:" + strconv.Itoa(port))
-
-	return err != nil
+	return err == nil
 }
 
 func (lb *LoadBalancer) getNextPort() int {
@@ -116,9 +112,8 @@ func (lb *LoadBalancer) StartDemoServers(waitGroup *sync.WaitGroup) {
 		waitGroup.Add(1)
 
 		go func(server *Server) {
-
 			defer waitGroup.Done()
-			http.ListenAndServe(server.Address, server.ServerMux)
+			http.ListenAndServe(server.Address.Host, server.ServerMux)
 		}(server)
 	}
 
@@ -139,7 +134,7 @@ func (lb *LoadBalancer) StartLB(waitGroup *sync.WaitGroup) {
 func (lb *LoadBalancer) Serve(w http.ResponseWriter, req *http.Request) {
 	server := lb.getNextServer()
 
-	fmt.Printf("Sending request to server %v", server.Address)
+	fmt.Printf("Sending request to server %v\n", server.Address)
 
 	server.Serve(w, req)
 
