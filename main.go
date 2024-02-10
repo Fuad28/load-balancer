@@ -20,7 +20,7 @@ func setupLoadBalancer() *LoadBalancer {
 	lb := LoadBalancer{
 		Port:     config.Port,
 		Count:    0,
-		LastPort: 8000,
+		LastPort: config.Port,
 		Config:   config,
 	}
 
@@ -37,13 +37,14 @@ func setupLoadBalancer() *LoadBalancer {
 }
 
 func devSetup(lb *LoadBalancer) {
-	baseUrl := "http://localhost:"
+	fmt.Println("DEV SETUP")
+	baseUrl := "127.0.0.1:"
 
-	for i := 0; i <= lb.Config.NoOfServers; i++ {
+	// create and start demo servers
+	for i := 1; i <= lb.Config.NoOfServers; i++ {
 		nextPort := lb.getNextPort()
 		address := baseUrl + strconv.Itoa(nextPort)
-		healthCheckPath := address + "/"
-		server := NewServer(healthCheckPath, address)
+		server := NewServer("/", address)
 		lb.Servers = append(lb.Servers, server)
 	}
 
