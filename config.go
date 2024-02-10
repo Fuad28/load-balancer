@@ -16,10 +16,10 @@ type ServerConf struct {
 type LoadBalancerConfig struct {
 	Port    int          `json:"port" valid:"required"`
 	Env     string       `json:"env" valid:"required"` // DEV or PROD
-	Servers []ServerConf `json:"servers" valid:"required"`
+	Servers []ServerConf `json:"servers"`
 
 	// dev configs
-	NoOfServers     int  `json:"noOfServers"`
+	NoOfServers     int  `json:"numberOfServers"`
 	RandomServerOff bool `json:"randomServerOff"`
 }
 
