@@ -1,6 +1,17 @@
 {
-	"env": "dev",
+	"env": "prod",
 	"port": 8000,
 	"numberOfServers": 3,
-	"randomServerOff": true
+	"randomServerOff": true,
+	"servers": [
+		{
+			"address": "https://www.google.com/",
+			"healthCheckPath": "/"
+		},
+
+		{
+			"address": "https://www.netflix.com/ng/",
+			"healthCheckPath": "/"
+		}
+	]
 }
