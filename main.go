@@ -44,7 +44,7 @@ func devSetup(lb *LoadBalancer) {
 	for i := 1; i <= lb.Config.NoOfServers; i++ {
 		nextPort := lb.getNextPort()
 		address := baseUrl + strconv.Itoa(nextPort)
-		server := NewServer("/", address)
+		server := NewDevServer(address)
 		lb.Servers = append(lb.Servers, server)
 	}
 
@@ -54,7 +54,7 @@ func ProdSetup(lb *LoadBalancer) {
 	fmt.Println("PROD SETUP")
 
 	for _, s := range lb.Config.Servers {
-		server := NewServer(s.HealthCheckPath, s.Address)
+		server := NewProdServer(s.HealthCheckPath, s.Address)
 		lb.Servers = append(lb.Servers, server)
 	}
 }

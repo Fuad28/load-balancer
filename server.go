@@ -32,7 +32,7 @@ func (s *Server) Serve(w http.ResponseWriter, req *http.Request) {
 
 }
 
-func NewServer(healthCheckPath string, address string) *Server {
+func NewDevServer(address string) *Server {
 	serverUrl, err := url.Parse("http://" + address)
 
 	OnErrorPanic(err, "Invalid server address")
@@ -48,6 +48,18 @@ func NewServer(healthCheckPath string, address string) *Server {
 		healthCheckPath: serverUrl.String(),
 		Address:         serverUrl,
 		ServerMux:       mux,
+		Proxy:           httputil.NewSingleHostReverseProxy(serverUrl),
+	}
+}
+
+func NewProdServer(healthCheckPath string, address string) *Server {
+	serverUrl, err := url.Parse("http://" + address)
+
+	OnErrorPanic(err, "Invalid server address")
+
+	return &Server{
+		healthCheckPath: serverUrl.JoinPath(healthCheckPath).String(),
+		Address:         serverUrl,
 		Proxy:           httputil.NewSingleHostReverseProxy(serverUrl),
 	}
 }
