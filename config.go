@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"strings"
 
 	validator "github.com/asaskevich/govalidator"
@@ -14,13 +15,15 @@ type ServerConf struct {
 }
 
 type LoadBalancerConfig struct {
-	Port    int          `json:"port" valid:"required"`
-	Env     string       `json:"env" valid:"required"` // DEV or PROD
-	Servers []ServerConf `json:"servers"`
+	Port int    `json:"port" valid:"required"`
+	Env  string `json:"env" valid:"required"` // DEV or PROD
 
-	// dev configs
+	// dev specific configs
 	NoOfServers     int  `json:"numberOfServers"`
 	RandomServerOff bool `json:"randomServerOff"`
+
+	// prod specific configs
+	Servers []ServerConf `json:"servers"`
 }
 
 func (lbConfig *LoadBalancerConfig) LoadConfig() error {
@@ -33,7 +36,11 @@ func (lbConfig *LoadBalancerConfig) LoadConfig() error {
 	OnErrorPanic(err, "config validation error")
 
 	if (strings.ToLower(config.Env) == "dev") && (lbConfig.NoOfServers <= 0) {
-		OnErrorPanic(err, "NoOfServers has to be greater than 1")
+		OnErrorPanic(errors.New("NoOfServers has to be greater than 0"), "")
+	}
+
+	if (strings.ToLower(config.Env) == "prod") && (len(lbConfig.Servers) == 0) {
+		OnErrorPanic(errors.New("at least one server is required to redirect traffic"), "")
 	}
 
 	return nil
