@@ -18,14 +18,18 @@ type Server struct {
 
 func (s *Server) IsAlive() bool {
 
-	_, err := http.Get(s.healthCheckPath)
+	res, err := http.Get(s.healthCheckPath)
 
 	if err != nil {
 		log.Fatal(err)
 		return false
 	}
 
-	return true
+	if res.StatusCode == 200 {
+		return true
+	}
+
+	return false
 
 }
 
