@@ -49,11 +49,12 @@ func (lb *LoadBalancer) getNextPort() int {
 func (lb *LoadBalancer) Start() {
 	waitGroup := sync.WaitGroup{}
 
+	defer waitGroup.Wait()
+
 	if lb.Config.Env == "dev" {
 		lb.StartDemoServers(&waitGroup)
 		lb.StartLB(&waitGroup)
 
-		waitGroup.Wait()
 	} else {
 		lb.StartLB(&waitGroup)
 	}
