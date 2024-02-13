@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	validator "github.com/asaskevich/govalidator"
+
+	"github.com/Fuad28/load-balancer/utils"
 )
 
 const CONFIGPATH = "config.json"
@@ -27,20 +29,20 @@ type LoadBalancerConfig struct {
 }
 
 func (lbConfig *LoadBalancerConfig) LoadConfig() error {
-	err := LoadFile[LoadBalancerConfig](CONFIGPATH, lbConfig)
+	err := utils.LoadFile[LoadBalancerConfig](CONFIGPATH, lbConfig)
 
-	OnErrorPanic(err, "Error loading config")
+	utils.OnErrorPanic(err, "Error loading config")
 
 	_, err = validator.ValidateStruct(lbConfig)
 
-	OnErrorPanic(err, "config validation error")
+	utils.OnErrorPanic(err, "config validation error")
 
 	if (strings.ToLower(config.Env) == "dev") && (lbConfig.NoOfServers <= 0) {
-		OnErrorPanic(errors.New("NoOfServers has to be greater than 0"), "")
+		utils.OnErrorPanic(errors.New("NoOfServers has to be greater than 0"), "")
 	}
 
 	if (strings.ToLower(config.Env) == "prod") && (len(lbConfig.Servers) == 0) {
-		OnErrorPanic(errors.New("at least one server is required to redirect traffic"), "")
+		utils.OnErrorPanic(errors.New("at least one server is required to redirect traffic"), "")
 	}
 
 	return nil

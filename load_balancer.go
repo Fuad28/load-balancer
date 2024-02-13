@@ -20,7 +20,7 @@ func (lb *LoadBalancer) getNextServer() *Server {
 	lb.Count++
 	server := lb.Servers[lb.Count%len(lb.Servers)]
 
-	if !server.IsAlive() || SimulateDownServer(lb) {
+	if !server.IsAlive(lb.Config.RandomServerOff) {
 		lb.Count++
 		lb.getNextServer()
 	}
