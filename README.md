@@ -3,13 +3,15 @@ A Load balancer implementation in GO from [John Cricket coding challenges](https
 # Load balancer implementation in GO
 
 A simple implementation of a load balancer using the round-robin algorithm in GO.
-Part of my attempt at John Crickett's ![Coding Chanllenges](https://codingchallenges.fyi/challenges/challenge-redis)
+Part of my attempt at John Crickett's [Coding Challenges](https://codingchallenges.fyi/challenges/challenge-redis).
+
+I wrote a walk-through article on how to build from scratch [here](https://fuad.hashnode.dev/load-balancing)
 
 ## Features
 
 -   Round-robin algorithm.
 -   Development and Production mode.
--   Dummy server created when load balancer is started in dev mode.
+-   Dummy server created when a load balancer is started in dev mode.
 -   A config.json file to pass in server configuration.
 -   Loads DB for disk on startup.
 -   Asynchronous implementation using goroutines.
